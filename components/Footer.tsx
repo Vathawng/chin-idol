@@ -18,9 +18,9 @@ export default function Footer() {
           <Image
             src="/images/logo.png"
             alt="America Chin Idol"
-            width={88}
-            height={86}
-            className="h-[70px] w-auto mt-6"
+            width={160}
+            height={157}
+            className="h-[130px] w-auto mt-6"
           />
         </div>
 
