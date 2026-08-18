@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #ffffff;
+  color: #1e1e1e;
+}
+
+/* Exact button gradient sampled from Figma: 89.81deg, #8a2532 -> #5a1620 */
+.btn-maroon {
+  background-image: linear-gradient(89.81deg, #8a2532 0%, #5a1620 99.96%);
+  border: 1px solid rgba(201, 154, 59, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-maroon:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px -8px rgba(90, 22, 32, 0.6);
+}
+
+.btn-ghost {
+  background-color: rgba(127, 127, 127, 0.3);
+  border: 1px solid rgba(201, 154, 59, 0.35);
+  transition: background-color 0.2s ease;
+}
+.btn-ghost:hover {
+  background-color: rgba(127, 127, 127, 0.45);
+}
+
+.btn-outline-chrome {
+  border: 1px solid rgba(201, 154, 59, 0.35);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+.btn-outline-chrome:hover {
+  border-color: rgba(201, 154, 59, 0.7);
+  background-color: rgba(201, 154, 59, 0.08);
+}
+
+.card-border {
+  border: 1px solid rgba(201, 154, 59, 0.35);
+}
+
+/* Live indicator dot, pulses gently */
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.live-dot {
+  background-color: #ff3b30;
+  animation: livePulse 1.6s ease-in-out infinite;
+}
+
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
