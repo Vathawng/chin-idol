@@ -12,7 +12,7 @@ export default function HomePage() {
       <section className="relative h-screen overflow-hidden">
         <Image
           src="/images/hero-winner.jpg"
-          alt="Last season's America Chin Idol winner performing on stage"
+          alt="Last season's Chin American Idol winner performing on stage"
           fill
           priority
           className="object-cover object-[72%_30%] lg:object-[72%_35%]"
@@ -24,7 +24,7 @@ export default function HomePage() {
             <div className="max-w-[508px]">
               <ScrollReveal>
                 <h1 className="font-display text-[40px] sm:text-[48px] leading-none text-white uppercase">
-                  America Chin Idol
+                  Chin American Idol
                 </h1>
               </ScrollReveal>
               <ScrollReveal delay={120}>
@@ -56,7 +56,7 @@ export default function HomePage() {
             <ScrollReveal delay={150} className="hidden lg:block shrink-0 w-[320px] xl:w-[380px]">
               <Image
                 src="/images/logo.png"
-                alt="America Chin Idol"
+                alt="Chin American Idol"
                 width={461}
                 height={452}
                 className="w-full h-auto"
@@ -81,7 +81,11 @@ export default function HomePage() {
         </ScrollReveal>
         <div className="flex gap-12 overflow-x-auto scrollbar-none scroll-smooth snap-x snap-mandatory pb-2">
           {MOCK_PANEL.map((m, i) => (
-            <ScrollReveal key={m.id} delay={i * 100} className="shrink-0 snap-start">
+            <ScrollReveal
+              key={m.id}
+              delay={i * 100}
+              className={`shrink-0 ${i === MOCK_PANEL.length - 1 ? "snap-end" : "snap-start"}`}
+            >
               <PanelCard member={m} />
             </ScrollReveal>
           ))}

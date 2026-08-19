@@ -9,7 +9,7 @@ export default function LiveStreamPlayer() {
         <iframe
           className="w-full h-full"
           src={`https://www.youtube.com/embed/live_stream?channel=${YOUTUBE_CHANNEL_ID}&autoplay=1`}
-          title="America Chin Idol — Live on YouTube"
+          title="Chin American Idol — Live on YouTube"
           allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
         />
@@ -26,7 +26,7 @@ export default function LiveStreamPlayer() {
         <iframe
           className="w-full h-full"
           src={src}
-          title="America Chin Idol — Live on Facebook"
+          title="Chin American Idol — Live on Facebook"
           style={{ border: "none", overflow: "hidden" }}
           allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
           allowFullScreen

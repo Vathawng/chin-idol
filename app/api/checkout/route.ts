@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
           currency: "usd",
           unit_amount: VOTE_PRICE_CENTS,
           product_data: {
-            name: `America Chin Idol vote — ${contestantName || contestantId}`,
+            name: `Chin American Idol vote — ${contestantName || contestantId}`,
           },
         },
         quantity,

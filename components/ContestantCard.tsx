@@ -4,7 +4,7 @@ import type { Contestant } from "@/lib/contestants";
 
 export default function ContestantCard({ contestant }: { contestant: Contestant }) {
   return (
-    <div className="w-[260px] shrink-0 snap-start">
+    <div className="w-[260px]">
       <Link href={`/contestants/${contestant.id}`} className="block">
         <PersonPhoto
           src={contestant.image_url}

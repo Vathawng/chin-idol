@@ -26,7 +26,11 @@ export default function ContestantsSection({
       </ScrollReveal>
       <ScrollRow ref={scrollRef}>
         {contestants.map((c, i) => (
-          <ScrollReveal key={c.id} delay={i * 100} className="shrink-0 snap-start">
+          <ScrollReveal
+            key={c.id}
+            delay={i * 100}
+            className={`shrink-0 ${i === contestants.length - 1 ? "snap-end" : "snap-start"}`}
+          >
             <ContestantCard contestant={c} />
           </ScrollReveal>
         ))}

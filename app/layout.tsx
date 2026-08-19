@@ -17,9 +17,9 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "America Chin Idol — Vote for Your Favorite Voice",
+  title: "Chin American Idol — Vote for Your Favorite Voice",
   description:
-    "America Chin Idol is a singing competition spotlighting vocal talent from Chin State, Myanmar. Register, watch, and vote for your favorite contestant.",
+    "Chin American Idol is a singing competition spotlighting vocal talent from Chin State, Myanmar. Register, watch, and vote for your favorite contestant.",
 };
 
 export default function RootLayout({

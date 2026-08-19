@@ -7,17 +7,17 @@ export default function Footer() {
       <div className="mx-auto max-w-[1440px] px-6 sm:px-12 lg:px-32 py-16 flex flex-col lg:flex-row lg:items-start justify-between gap-12">
         <div>
           <h2 className="font-display text-[32px] leading-none text-ink uppercase">
-            America Chin Idol
+            Chin American Idol
           </h2>
           <p className="font-body text-[16px] text-ink mt-3 max-w-sm">
             Celebrating the voices of Chin State, Myanmar — one vote at a time.
           </p>
           <p className="font-body text-[16px] text-ink mt-6">
-            © {new Date().getFullYear()} America Chin Idol
+            © {new Date().getFullYear()} Chin American Idol
           </p>
           <Image
             src="/images/logo.png"
-            alt="America Chin Idol"
+            alt="Chin American Idol"
             width={160}
             height={157}
             className="h-[130px] w-auto mt-6"

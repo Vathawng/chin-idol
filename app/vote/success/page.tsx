@@ -10,7 +10,7 @@ export default function VoteSuccessPage() {
         Vote Counted!
       </h1>
       <p className="font-body text-[16px] text-ink/60 mb-8">
-        Thank you for supporting America Chin Idol. Your vote has been
+        Thank you for supporting Chin American Idol. Your vote has been
         recorded and will reflect on the leaderboard shortly.
       </p>
       <div className="flex justify-center gap-3">

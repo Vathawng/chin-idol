@@ -13,7 +13,7 @@ export default function WatchPage() {
           </span>
         )}
         <p className="font-display text-[14px] tracking-widest text-ink/50 uppercase">
-          America Chin Idol
+          Chin American Idol
         </p>
       </div>
       <h1 className="font-display text-[40px] leading-none text-ink uppercase mb-6">

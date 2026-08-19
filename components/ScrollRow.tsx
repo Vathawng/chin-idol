@@ -19,7 +19,14 @@ const ScrollRow = forwardRef<ScrollRowHandle, ScrollRowProps>(function ScrollRow
 
   useImperativeHandle(ref, () => ({
     scrollBy: (dir: 1 | -1) => {
-      innerRef.current?.scrollBy({ left: dir * 320, behavior: "smooth" });
+      const el = innerRef.current;
+      if (!el) return;
+      // Clamp manually so the button can never scroll past real content —
+      // relying on the browser alone can overshoot into empty trailing
+      // space when combined with scroll-snap, which looks like a blank card.
+      const maxScroll = el.scrollWidth - el.clientWidth;
+      const target = Math.min(maxScroll, Math.max(0, el.scrollLeft + dir * 320));
+      el.scrollTo({ left: target, behavior: "smooth" });
     },
   }));
 

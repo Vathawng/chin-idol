@@ -31,7 +31,7 @@ export default function LoginPage() {
     <div className="mx-auto max-w-md px-6 py-24">
       <div className="card-border rounded-lg p-8 shadow-sm">
         <p className="font-display text-[14px] tracking-widest text-ink/50 uppercase mb-2">
-          America Chin Idol
+          Chin American Idol
         </p>
         <h1 className="font-display text-[28px] leading-none text-ink uppercase mb-6">
           Welcome Back
@@ -75,7 +75,7 @@ export default function LoginPage() {
         </form>
 
         <p className="text-center font-body text-[14px] text-ink/60 mt-6">
-          New to America Chin Idol?{" "}
+          New to Chin American Idol?{" "}
           <Link href="/signup" className="font-bold text-[#8a2532] hover:underline">
             Create an account
           </Link>

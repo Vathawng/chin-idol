@@ -28,7 +28,7 @@ export default function SiteHeader() {
           <Link href="/" className="block shrink-0" onClick={() => setMenuOpen(false)}>
             <Image
               src="/images/logo.png"
-              alt="America Chin Idol"
+              alt="Chin American Idol"
               width={88}
               height={86}
               className="h-[70px] sm:h-[86px] w-auto"
