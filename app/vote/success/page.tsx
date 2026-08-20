@@ -11,20 +11,20 @@ export default function VoteSuccessPage() {
       </h1>
       <p className="font-body text-[16px] text-ink/60 mb-8">
         Thank you for supporting Chin American Idol. Your vote has been
-        recorded and will reflect on the leaderboard shortly.
+        recorded.
       </p>
       <div className="flex justify-center gap-3">
         <Link
-          href="/leaderboard"
+          href="/#contestants"
           className="btn-maroon rounded-pill h-11 px-6 flex items-center font-body font-bold text-[16px] text-white"
         >
-          View Leaderboard
+          Vote Again
         </Link>
         <Link
           href="/"
           className="btn-outline-chrome rounded-pill h-11 px-6 flex items-center font-body font-bold text-[16px] text-ink"
         >
-          Vote Again
+          Back Home
         </Link>
       </div>
     </div>

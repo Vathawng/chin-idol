@@ -32,9 +32,6 @@ export default function Footer() {
             <Link href="/watch" className="font-display text-[24px] sm:text-[32px] text-ink uppercase hover:text-maroon-from transition-colors">
               Live
             </Link>
-            <Link href="/leaderboard" className="font-display text-[24px] sm:text-[32px] text-ink uppercase hover:text-maroon-from transition-colors">
-              Vote
-            </Link>
             <Link href="/#contestants" className="font-display text-[24px] sm:text-[32px] text-ink uppercase hover:text-maroon-from transition-colors">
               Contestants
             </Link>

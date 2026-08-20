@@ -27,12 +27,6 @@ export default function ContestantPage({ params }: { params: { id: string } }) {
         <p className="font-body text-[16px] text-ink/70 leading-relaxed mb-8">
           {contestant.bio}
         </p>
-        <div className="flex items-baseline gap-2 mb-8">
-          <span className="font-display text-[32px] text-[#8a2532]">
-            {contestant.votes.toLocaleString()}
-          </span>
-          <span className="font-body text-[14px] text-ink/50">votes so far</span>
-        </div>
 
         <VoteWidget
           contestantId={contestant.id}
