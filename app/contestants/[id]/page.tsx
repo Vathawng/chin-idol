@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import PersonPhoto from "@/components/PersonPhoto";
 import VoteWidget from "@/components/VoteWidget";
-import { MOCK_CONTESTANTS, VOTE_PRICE_CENTS } from "@/lib/contestants";
+import { VOTE_PRICE_CENTS } from "@/lib/contestants";
+import { getContestant } from "@/lib/supabase/contestants";
 
-export default function ContestantPage({ params }: { params: { id: string } }) {
-  const contestant = MOCK_CONTESTANTS.find((c) => c.id === params.id);
+export default async function ContestantPage({ params }: { params: { id: string } }) {
+  const contestant = await getContestant(params.id);
   if (!contestant) notFound();
 
   return (

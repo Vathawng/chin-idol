@@ -3,9 +3,11 @@ import Image from "next/image";
 import ContestantsSection from "@/components/ContestantsSection";
 import PanelCard from "@/components/PanelCard";
 import ScrollReveal from "@/components/ScrollReveal";
-import { MOCK_CONTESTANTS, MOCK_PANEL } from "@/lib/contestants";
+import { MOCK_PANEL } from "@/lib/contestants";
+import { getContestants } from "@/lib/supabase/contestants";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const contestants = await getContestants();
   return (
     <div>
       {/* Hero — left text column and right logo, aligned on one row */}
@@ -69,7 +71,7 @@ export default function HomePage() {
 
       {/* Meet the Contestants */}
       <section id="contestants" className="mx-auto max-w-[1440px] px-6 sm:px-12 lg:px-32 py-20">
-        <ContestantsSection contestants={MOCK_CONTESTANTS} />
+        <ContestantsSection contestants={contestants} />
       </section>
 
       {/* Meet the Panel — always a horizontal scroller, never stacks */}

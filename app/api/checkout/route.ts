@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
+import { getContestant } from "@/lib/supabase/contestants";
 import { VOTE_PRICE_CENTS } from "@/lib/contestants";
 
 export async function POST(req: NextRequest) {
-  const { contestantId, contestantName, quantity } = await req.json();
+  const { contestantId, quantity } = await req.json();
 
   if (!contestantId || !quantity || quantity < 1) {
     return NextResponse.json({ error: "Invalid vote request." }, { status: 400 });
@@ -22,6 +23,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Look up the contestant server-side rather than trusting a name the
+  // client sent — also confirms the id is real before charging anyone.
+  const contestant = await getContestant(contestantId);
+  if (!contestant) {
+    return NextResponse.json({ error: "Contestant not found." }, { status: 404 });
+  }
+
   const origin = req.headers.get("origin") || process.env.NEXT_PUBLIC_SITE_URL;
 
   const session = await stripe.checkout.sessions.create({
@@ -33,7 +41,7 @@ export async function POST(req: NextRequest) {
           currency: "usd",
           unit_amount: VOTE_PRICE_CENTS,
           product_data: {
-            name: `Chin American Idol vote — ${contestantName || contestantId}`,
+            name: `Chin American Idol vote — ${contestant.name}`,
           },
         },
         quantity,

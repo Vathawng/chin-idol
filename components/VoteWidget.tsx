@@ -24,7 +24,7 @@ export default function VoteWidget({
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contestantId, contestantName, quantity: qty }),
+        body: JSON.stringify({ contestantId, quantity: qty }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Something went wrong");
