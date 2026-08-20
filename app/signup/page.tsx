@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function SignupPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -16,7 +18,7 @@ export default function SignupPage() {
     setLoading(true);
     setError(null);
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { emailRedirectTo: `${window.location.origin}/` },
@@ -24,6 +26,15 @@ export default function SignupPage() {
     setLoading(false);
     if (error) {
       setError(error.message);
+      return;
+    }
+    // With email confirmation turned off in Supabase, signUp() returns a
+    // live session immediately — go straight in. If confirmation is ever
+    // turned back on, no session comes back yet, so fall back to the
+    // "check your inbox" screen instead.
+    if (data.session) {
+      router.push("/");
+      router.refresh();
       return;
     }
     setSent(true);
@@ -118,7 +129,7 @@ function Field({
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-md card-border px-4 py-3 font-body text-ink focus:outline-none focus:border-[#8a2532] transition-colors"
+        className="w-full rounded-md card-border px-4 py-3 font-body text-ink placeholder-ink/30 focus:outline-none focus:border-[#8a2532] transition-colors"
         {...rest}
       />
     </label>
