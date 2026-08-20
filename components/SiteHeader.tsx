@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import type { User } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
 
 const NAV_LINKS = [
   { label: "HOME", href: "/" },
@@ -13,8 +15,30 @@ const NAV_LINKS = [
 
 export default function SiteHeader() {
   const pathname = usePathname();
+  const router = useRouter();
   const isHome = pathname === "/";
   const [menuOpen, setMenuOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    setMenuOpen(false);
+    router.push("/");
+    router.refresh();
+  }
 
   return (
     <header
@@ -49,19 +73,30 @@ export default function SiteHeader() {
 
         {/* Desktop right side */}
         <div className="hidden md:flex items-center gap-6">
-          <Link
-            href="/login"
-            className="font-body font-bold text-[16px] text-white hover:text-chrome transition-colors"
-          >
-            Log In
-          </Link>
-          <div className="h-6 w-px bg-white/40" />
-          <Link
-            href="/signup"
-            className="btn-maroon rounded-pill px-6 py-2 font-body font-bold text-[16px] text-white"
-          >
-            Sign Up
-          </Link>
+          {user ? (
+            <button
+              onClick={handleLogout}
+              className="font-body font-bold text-[16px] text-white hover:text-chrome transition-colors"
+            >
+              Log Out
+            </button>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="font-body font-bold text-[16px] text-white hover:text-chrome transition-colors"
+              >
+                Log In
+              </Link>
+              <div className="h-6 w-px bg-white/40" />
+              <Link
+                href="/signup"
+                className="btn-maroon rounded-pill px-6 py-2 font-body font-bold text-[16px] text-white"
+              >
+                Sign Up
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile hamburger */}
@@ -104,20 +139,31 @@ export default function SiteHeader() {
               </Link>
             ))}
             <div className="h-px w-full bg-white/20 my-1" />
-            <Link
-              href="/login"
-              onClick={() => setMenuOpen(false)}
-              className="font-body font-bold text-[18px] text-white hover:text-chrome transition-colors"
-            >
-              Log In
-            </Link>
-            <Link
-              href="/signup"
-              onClick={() => setMenuOpen(false)}
-              className="btn-maroon rounded-pill px-6 py-3 font-body font-bold text-[16px] text-white text-center"
-            >
-              Sign Up
-            </Link>
+            {user ? (
+              <button
+                onClick={handleLogout}
+                className="font-body font-bold text-[18px] text-white hover:text-chrome transition-colors text-left"
+              >
+                Log Out
+              </button>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  onClick={() => setMenuOpen(false)}
+                  className="font-body font-bold text-[18px] text-white hover:text-chrome transition-colors"
+                >
+                  Log In
+                </Link>
+                <Link
+                  href="/signup"
+                  onClick={() => setMenuOpen(false)}
+                  className="btn-maroon rounded-pill px-6 py-3 font-body font-bold text-[16px] text-white text-center"
+                >
+                  Sign Up
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       )}

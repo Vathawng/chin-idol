@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
 
 export default function VoteWidget({
   contestantId,
@@ -11,6 +12,8 @@ export default function VoteWidget({
   contestantName: string;
   pricePerVote: number;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [qty, setQty] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,6 +29,13 @@ export default function VoteWidget({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ contestantId, quantity: qty }),
       });
+
+      if (res.status === 401) {
+        // Not logged in — send them to log in, then bring them right back here.
+        router.push(`/login?next=${encodeURIComponent(pathname)}`);
+        return;
+      }
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Something went wrong");
       window.location.href = data.url;

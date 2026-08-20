@@ -1,12 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function SignupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignupForm />
+    </Suspense>
+  );
+}
+
+function SignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") || "/";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,7 +32,7 @@ export default function SignupPage() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/` },
+      options: { emailRedirectTo: `${window.location.origin}${next}` },
     });
     setLoading(false);
     if (error) {
@@ -33,7 +44,7 @@ export default function SignupPage() {
     // turned back on, no session comes back yet, so fall back to the
     // "check your inbox" screen instead.
     if (data.session) {
-      router.push("/");
+      router.push(next);
       router.refresh();
       return;
     }
@@ -75,7 +86,10 @@ export default function SignupPage() {
       </form>
       <p className="text-center font-body text-[14px] text-ink/60 mt-6">
         Already registered?{" "}
-        <Link href="/login" className="font-bold text-[#8a2532] hover:underline">
+        <Link
+          href={`/login${next !== "/" ? `?next=${encodeURIComponent(next)}` : ""}`}
+          className="font-bold text-[#8a2532] hover:underline"
+        >
           Log in
         </Link>
       </p>

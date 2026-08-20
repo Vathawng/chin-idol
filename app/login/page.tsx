@@ -1,12 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") || "/";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -23,7 +34,7 @@ export default function LoginPage() {
       setError(error.message);
       return;
     }
-    router.push("/");
+    router.push(next);
     router.refresh();
   }
 
@@ -76,7 +87,10 @@ export default function LoginPage() {
 
         <p className="text-center font-body text-[14px] text-ink/60 mt-6">
           New to Chin American Idol?{" "}
-          <Link href="/signup" className="font-bold text-[#8a2532] hover:underline">
+          <Link
+            href={`/signup${next !== "/" ? `?next=${encodeURIComponent(next)}` : ""}`}
+            className="font-bold text-[#8a2532] hover:underline"
+          >
             Create an account
           </Link>
         </p>
