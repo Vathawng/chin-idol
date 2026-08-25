@@ -55,7 +55,7 @@ export default function Turnstile({ onVerify }: { onVerify: (token: string) => v
 
   return (
     <>
-      <Script src="https://challenge.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" />
+      <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" strategy="afterInteractive" />
       <div ref={containerRef} />
     </>
   );
