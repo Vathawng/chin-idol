@@ -6,6 +6,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 import { MOCK_PANEL } from "@/lib/contestants";
 import { getContestants } from "@/lib/supabase/contestants";
 import { getVotingStatus } from "@/lib/supabase/rounds";
+import { createClient } from "@/lib/supabase/server";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString(undefined, {
@@ -17,9 +18,11 @@ function formatDate(iso: string) {
 }
 
 export default async function HomePage() {
-  const [contestants, votingStatus] = await Promise.all([
+  const supabase = createClient();
+  const [contestants, votingStatus, { data: { user } }] = await Promise.all([
     getContestants(),
     getVotingStatus(),
+    supabase.auth.getUser(),
   ]);
   return (
     <div>
@@ -52,10 +55,10 @@ export default async function HomePage() {
               <ScrollReveal delay={240}>
                 <div className="flex flex-wrap items-center gap-4 mt-8">
                   <Link
-                    href="/signup"
+                    href={user ? "/#contestants" : "/signup"}
                     className="btn-maroon rounded-pill h-10 px-6 flex items-center font-body font-bold text-[16px] text-white"
                   >
-                    Register to Vote
+                    {user ? "Vote Now" : "Register to Vote"}
                   </Link>
                   <Link
                     href="/watch"
@@ -129,10 +132,10 @@ export default async function HomePage() {
               )}
             </div>
             <Link
-              href="/signup"
+              href={user ? "/#contestants" : "/signup"}
               className="btn-maroon rounded-pill h-10 px-6 flex items-center font-body font-bold text-[16px] text-white shrink-0"
             >
-              {votingStatus.open ? "Cast Your Vote" : "Register Now"}
+              {user ? "Cast Your Vote" : votingStatus.open ? "Cast Your Vote" : "Register Now"}
             </Link>
           </>
         </ScrollReveal>
