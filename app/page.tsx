@@ -3,10 +3,18 @@ import Image from "next/image";
 import ContestantsSection from "@/components/ContestantsSection";
 import PanelCard from "@/components/PanelCard";
 import ScrollReveal from "@/components/ScrollReveal";
+import HeroVoteButton from "@/components/HeroVoteButton";
+import VoteBannerButton from "@/components/VoteBannerButton";
 import { MOCK_PANEL } from "@/lib/contestants";
 import { getContestants } from "@/lib/supabase/contestants";
 import { getVotingStatus } from "@/lib/supabase/rounds";
-import { createClient } from "@/lib/supabase/server";
+
+// Neither getContestants() nor getVotingStatus() touch cookies/auth, so this
+// page no longer needs to be fully dynamic — it's regenerated at most every
+// 15 seconds instead of hitting Supabase on every single page load. The
+// auth-dependent bits (button label/href) live in small Client Components
+// below so they don't force the whole page out of caching.
+export const revalidate = 15;
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleString(undefined, {
@@ -18,11 +26,9 @@ function formatDate(iso: string) {
 }
 
 export default async function HomePage() {
-  const supabase = createClient();
-  const [contestants, votingStatus, { data: { user } }] = await Promise.all([
+  const [contestants, votingStatus] = await Promise.all([
     getContestants(),
     getVotingStatus(),
-    supabase.auth.getUser(),
   ]);
   return (
     <div>
@@ -54,12 +60,7 @@ export default async function HomePage() {
               </ScrollReveal>
               <ScrollReveal delay={240}>
                 <div className="flex flex-wrap items-center gap-4 mt-8">
-                  <Link
-                    href={user ? "/#contestants" : "/signup"}
-                    className="btn-maroon rounded-pill h-10 px-6 flex items-center font-body font-bold text-[16px] text-white"
-                  >
-                    {user ? "Vote Now" : "Register to Vote"}
-                  </Link>
+                  <HeroVoteButton />
                   <Link
                     href="/watch"
                     className="btn-ghost rounded-pill h-10 px-6 flex items-center gap-2 font-body font-bold text-[16px] text-white"
@@ -131,12 +132,7 @@ export default async function HomePage() {
                 </p>
               )}
             </div>
-            <Link
-              href={user ? "/#contestants" : "/signup"}
-              className="btn-maroon rounded-pill h-10 px-6 flex items-center font-body font-bold text-[16px] text-white shrink-0"
-            >
-              {user ? "Cast Your Vote" : votingStatus.open ? "Cast Your Vote" : "Register Now"}
-            </Link>
+            <VoteBannerButton votingOpen={votingStatus.open} />
           </>
         </ScrollReveal>
       </section>

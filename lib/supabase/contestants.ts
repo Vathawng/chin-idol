@@ -1,10 +1,10 @@
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 import type { Contestant } from "@/lib/contestants";
 
 // Public read — RLS policy "contestants are public" allows this with just
 // the anon key, no auth required. Used on the homepage and contestant list.
 export async function getContestants(): Promise<Contestant[]> {
-  const supabase = createClient();
+  const supabase = createPublicClient();
   const { data, error } = await supabase
     .from("contestants")
     .select("id, name, hometown, bio, image_url")
@@ -18,7 +18,7 @@ export async function getContestants(): Promise<Contestant[]> {
 }
 
 export async function getContestant(id: string): Promise<Contestant | null> {
-  const supabase = createClient();
+  const supabase = createPublicClient();
   const { data, error } = await supabase
     .from("contestants")
     .select("id, name, hometown, bio, image_url")

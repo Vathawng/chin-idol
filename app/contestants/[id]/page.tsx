@@ -5,6 +5,12 @@ import { VOTE_PRICE_CENTS } from "@/lib/contestants";
 import { getContestant } from "@/lib/supabase/contestants";
 import { getVotingStatus } from "@/lib/supabase/rounds";
 
+// Same reasoning as the homepage — neither fetcher touches cookies, so this
+// page can be cached instead of hitting Supabase on every visit. VoteWidget
+// handles auth entirely client-side/via the checkout API, so nothing here
+// needs to be dynamic.
+export const revalidate = 15;
+
 export default async function ContestantPage({ params }: { params: { id: string } }) {
   const [contestant, votingStatus] = await Promise.all([
     getContestant(params.id),

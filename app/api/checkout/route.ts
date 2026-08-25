@@ -3,6 +3,7 @@ import { stripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
 import { getContestant } from "@/lib/supabase/contestants";
 import { getVotingStatus } from "@/lib/supabase/rounds";
+import { checkCheckoutRateLimit } from "@/lib/rate-limit";
 import { VOTE_PRICE_CENTS } from "@/lib/contestants";
 
 export async function POST(req: NextRequest) {
@@ -21,6 +22,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: "Please log in before voting." },
       { status: 401 }
+    );
+  }
+
+  // Checked right after auth, before any other work — this is what
+  // protects the endpoint from being hammered, whether by a bot or by
+  // someone double/triple-clicking during a traffic spike.
+  const allowed = await checkCheckoutRateLimit(user.id);
+  if (!allowed) {
+    return NextResponse.json(
+      { error: "You're voting a bit too fast — please wait a moment and try again." },
+      { status: 429 }
     );
   }
 

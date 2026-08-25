@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public";
 
 export type VotingRound = {
   id: string;
@@ -14,7 +14,7 @@ export type VotingStatus =
 // The single source of truth for whether voting is open right now.
 // Used both to gate /api/checkout and to drive what the UI shows.
 export async function getVotingStatus(): Promise<VotingStatus> {
-  const supabase = createClient();
+  const supabase = createPublicClient();
   const nowIso = new Date().toISOString();
 
   const { data: current } = await supabase

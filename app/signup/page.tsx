@@ -1,9 +1,10 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useCallback, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import Turnstile from "@/components/Turnstile";
 
 export default function SignupPage() {
   return (
@@ -20,9 +21,12 @@ function SignupForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+
+  const handleCaptcha = useCallback((token: string) => setCaptchaToken(token), []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,7 +36,10 @@ function SignupForm() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}${next}` },
+      options: {
+        emailRedirectTo: `${window.location.origin}${next}`,
+        captchaToken: captchaToken || undefined,
+      },
     });
     setLoading(false);
     if (error) {
@@ -75,6 +82,7 @@ function SignupForm() {
           minLength={6}
           required
         />
+        <Turnstile onVerify={handleCaptcha} />
         {error && <p className="font-body text-sm text-[#8a2532]">{error}</p>}
         <button
           type="submit"
@@ -143,7 +151,7 @@ function Field({
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-md card-border px-4 py-3 font-body text-ink placeholder-ink/30 focus:outline-none focus:border-[#8a2532] transition-colors"
+        className="w-full rounded-md card-border px-4 py-3 font-body text-ink focus:outline-none focus:border-[#8a2532] transition-colors"
         {...rest}
       />
     </label>
