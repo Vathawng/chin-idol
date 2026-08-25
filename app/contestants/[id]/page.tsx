@@ -3,9 +3,13 @@ import PersonPhoto from "@/components/PersonPhoto";
 import VoteWidget from "@/components/VoteWidget";
 import { VOTE_PRICE_CENTS } from "@/lib/contestants";
 import { getContestant } from "@/lib/supabase/contestants";
+import { getVotingStatus } from "@/lib/supabase/rounds";
 
 export default async function ContestantPage({ params }: { params: { id: string } }) {
-  const contestant = await getContestant(params.id);
+  const [contestant, votingStatus] = await Promise.all([
+    getContestant(params.id),
+    getVotingStatus(),
+  ]);
   if (!contestant) notFound();
 
   return (
@@ -33,6 +37,7 @@ export default async function ContestantPage({ params }: { params: { id: string 
           contestantId={contestant.id}
           contestantName={contestant.name}
           pricePerVote={VOTE_PRICE_CENTS / 100}
+          votingStatus={votingStatus}
         />
       </div>
     </div>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
 import { getContestant } from "@/lib/supabase/contestants";
+import { getVotingStatus } from "@/lib/supabase/rounds";
 import { VOTE_PRICE_CENTS } from "@/lib/contestants";
 
 export async function POST(req: NextRequest) {
@@ -20,6 +21,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: "Please log in before voting." },
       { status: 401 }
+    );
+  }
+
+  // Source of truth for whether voting is open — checked server-side so it
+  // can't be bypassed by anyone hitting this route directly.
+  const status = await getVotingStatus();
+  if (!status.open) {
+    return NextResponse.json(
+      { error: "Voting is not currently open." },
+      { status: 403 }
     );
   }
 
@@ -51,6 +62,7 @@ export async function POST(req: NextRequest) {
       contestant_id: contestantId,
       user_id: user.id,
       vote_quantity: String(quantity),
+      round_id: status.round.id,
     },
     success_url: `${origin}/vote/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/vote/cancel`,

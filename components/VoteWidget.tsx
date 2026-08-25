@@ -3,14 +3,33 @@
 import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 
+type VotingStatus =
+  | { open: true; round: { id: string; name: string; opens_at: string; closes_at: string } }
+  | {
+      open: false;
+      round: null;
+      nextRound: { id: string; name: string; opens_at: string; closes_at: string } | null;
+    };
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleString(undefined, {
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export default function VoteWidget({
   contestantId,
   contestantName,
   pricePerVote,
+  votingStatus,
 }: {
   contestantId: string;
   contestantName: string;
   pricePerVote: number;
+  votingStatus: VotingStatus;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -45,13 +64,33 @@ export default function VoteWidget({
     }
   }
 
+  if (!votingStatus.open) {
+    return (
+      <div className="card-border rounded-lg p-6 sm:p-7">
+        <h3 className="font-display text-[22px] leading-none text-ink uppercase mb-3">
+          Voting Closed
+        </h3>
+        <p className="font-body text-[14px] text-ink/60">
+          {votingStatus.nextRound
+            ? `Voting for "${votingStatus.nextRound.name}" opens ${formatDate(
+                votingStatus.nextRound.opens_at
+              )}.`
+            : "There's no voting round open right now — check back soon."}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="card-border rounded-lg p-6 sm:p-7">
       <h3 className="font-display text-[22px] leading-none text-ink uppercase mb-1">
         Vote for {contestantName}
       </h3>
-      <p className="font-body text-[14px] text-ink/60 mb-5">
+      <p className="font-body text-[14px] text-ink/60 mb-1">
         ${pricePerVote.toFixed(2)} per vote · no limit on how many you cast
+      </p>
+      <p className="font-body text-[12px] text-ink/40 mb-5">
+        {votingStatus.round.name} closes {formatDate(votingStatus.round.closes_at)}.
       </p>
 
       <div className="flex flex-wrap gap-2 mb-4">

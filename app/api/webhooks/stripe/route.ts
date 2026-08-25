@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-    const { contestant_id, user_id, vote_quantity } = session.metadata || {};
+    const { contestant_id, user_id, vote_quantity, round_id } = session.metadata || {};
 
     if (contestant_id && user_id && vote_quantity) {
       const supabase = createAdminClient();
@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
       await supabase.from("votes").insert({
         user_id,
         contestant_id,
+        round_id: round_id || null,
         quantity: parseInt(vote_quantity, 10),
         amount_cents: session.amount_total,
         stripe_session_id: session.id,

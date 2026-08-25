@@ -5,9 +5,22 @@ import PanelCard from "@/components/PanelCard";
 import ScrollReveal from "@/components/ScrollReveal";
 import { MOCK_PANEL } from "@/lib/contestants";
 import { getContestants } from "@/lib/supabase/contestants";
+import { getVotingStatus } from "@/lib/supabase/rounds";
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleString(undefined, {
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
 
 export default async function HomePage() {
-  const contestants = await getContestants();
+  const [contestants, votingStatus] = await Promise.all([
+    getContestants(),
+    getVotingStatus(),
+  ]);
   return (
     <div>
       {/* Hero — left text column and right logo, aligned on one row */}
@@ -102,16 +115,24 @@ export default async function HomePage() {
               <h2 className="font-display text-[32px] leading-none text-white uppercase">
                 Cast Your Vote Now!
               </h2>
-              <p className="font-body text-[16px] text-white mt-3 flex items-center justify-center sm:justify-start gap-2">
-                Voting is <span className="font-bold">LIVE</span>
-                <span className="live-dot h-2 w-2 rounded-full" />
-              </p>
+              {votingStatus.open ? (
+                <p className="font-body text-[16px] text-white mt-3 flex items-center justify-center sm:justify-start gap-2">
+                  Voting is <span className="font-bold">LIVE</span>
+                  <span className="live-dot h-2 w-2 rounded-full" />
+                </p>
+              ) : (
+                <p className="font-body text-[16px] text-white/70 mt-3">
+                  {votingStatus.nextRound
+                    ? `Voting opens ${formatDate(votingStatus.nextRound.opens_at)}.`
+                    : "No voting round is currently scheduled."}
+                </p>
+              )}
             </div>
             <Link
               href="/signup"
               className="btn-maroon rounded-pill h-10 px-6 flex items-center font-body font-bold text-[16px] text-white shrink-0"
             >
-              Cast Your Vote
+              {votingStatus.open ? "Cast Your Vote" : "Register Now"}
             </Link>
           </>
         </ScrollReveal>
