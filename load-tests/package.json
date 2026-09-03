@@ -1,0 +1,21 @@
+{
+  "name": "chin-idol-load-tests",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "k6 load-testing suite for chin-idol voting rounds",
+  "scripts": {
+    "seed": "node --env-file=.env.loadtest scripts/seed-round.mjs",
+    "seed:cleanup": "node --env-file=.env.loadtest scripts/seed-round.mjs --cleanup",
+    "prepare": "node --env-file=.env.loadtest scripts/prepare.mjs",
+    "verify": "node --env-file=.env.loadtest scripts/verify.mjs",
+    "browse": "bash scripts/run.sh browse",
+    "checkout": "bash scripts/run.sh checkout",
+    "ratelimit": "bash scripts/run.sh ratelimit",
+    "webhook": "bash scripts/run.sh webhook",
+    "results": "bash scripts/run.sh results",
+    "spike": "bash scripts/run.sh spike",
+    "soak": "bash scripts/run.sh soak",
+    "all": "bash scripts/run.sh all"
+  }
+}

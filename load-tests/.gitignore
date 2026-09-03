@@ -1,0 +1,6 @@
+# Secrets and generated fixtures — never commit.
+.env.loadtest
+data/sessions.json
+data/fixtures.json
+results/
+*.json.tmp
