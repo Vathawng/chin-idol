@@ -80,7 +80,7 @@ function SignupForm() {
           value={password}
           onChange={setPassword}
           autoComplete="new-password"
-          minLength={6}
+          minLength={10}
           required
         />
         <Turnstile onVerify={handleCaptcha} />
