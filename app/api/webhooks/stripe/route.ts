@@ -23,19 +23,21 @@ export async function POST(req: NextRequest) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-    const { contestant_id, user_id, vote_quantity, round_id } = session.metadata || {};
+    const { contestant_id, vote_quantity, round_id } = session.metadata || {};
 
-    if (contestant_id && user_id && vote_quantity) {
+    if (contestant_id && vote_quantity) {
       const supabase = createAdminClient();
 
+      // Anonymous voting — there's no user_id. We record the email Stripe
+      // collected at checkout instead, so a paid vote is still traceable.
       // Idempotent insert — the unique constraint on stripe_session_id
       // (see supabase/schema.sql) means a retried webhook won't double-credit.
       await supabase.from("votes").insert({
-        user_id,
         contestant_id,
         round_id: round_id || null,
         quantity: parseInt(vote_quantity, 10),
         amount_cents: session.amount_total,
+        voter_email: session.customer_details?.email ?? null,
         stripe_session_id: session.id,
         status: "paid",
       });

@@ -8,14 +8,16 @@
 // (LT_STRIPE_WEBHOOK_SECRET). It is the standard offline way to exercise a
 // webhook receiver without depending on Stripe delivering events.
 //
-// Rate is governed by CONFIG.webhookRps. Every 20th event reuses a prior
-// session id to confirm the idempotency guard prevents a duplicate credit.
+// Voting is anonymous, so events carry no user_id — just the contestant,
+// quantity, round, and a payer email (as Stripe would provide). Rate is
+// governed by CONFIG.webhookRps. Every 20th event reuses a prior session id to
+// confirm the idempotency guard prevents a duplicate credit.
 
 import http from "k6/http";
 import { check } from "k6";
 import { Trend, Counter } from "k6/metrics";
 import { CONFIG } from "../lib/config.js";
-import { fixtures, sessions } from "../lib/data.js";
+import { fixtures } from "../lib/data.js";
 import { buildEvent, signPayload } from "../lib/stripe-sig.js";
 
 const webhookLatency = new Trend("webhook_ms", true);
@@ -31,9 +33,8 @@ export function webhook() {
   }
   const contestantIds = fixtures.contestantIds || [];
   const contestantId = contestantIds[__ITER % Math.max(contestantIds.length, 1)];
-  const userId = sessions.length ? sessions[__ITER % sessions.length].userId : null;
-  if (!contestantId || !userId) {
-    check(null, { "have contestant+user ids (prepare.mjs / seed)": () => false });
+  if (!contestantId) {
+    check(null, { "have contestant ids (prepare.mjs / seed)": () => false });
     return;
   }
 
@@ -46,10 +47,10 @@ export function webhook() {
   const payload = buildEvent({
     sessionId,
     contestantId,
-    userId,
     quantity,
     roundId: fixtures.roundId,
     amountCents: VOTE_PRICE_CENTS * quantity,
+    email: `loadtest+${__VU}_${__ITER}@loadtest.example.com`,
   });
   const signature = signPayload(payload, CONFIG.webhookSecret);
 

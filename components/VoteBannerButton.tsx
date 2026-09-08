@@ -1,29 +1,13 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
 
+// Voting is anonymous — no account gate. `votingOpen` only tweaks the label.
 export default function VoteBannerButton({ votingOpen }: { votingOpen: boolean }) {
-  const [loggedIn, setLoggedIn] = useState(false);
-
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => setLoggedIn(!!data.user));
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setLoggedIn(!!session);
-    });
-    return () => listener.subscription.unsubscribe();
-  }, []);
-
-  const label = loggedIn || votingOpen ? "Cast Your Vote" : "Register Now";
-
   return (
     <Link
-      href={loggedIn ? "/#contestants" : "/signup"}
+      href="/#contestants"
       className="btn-maroon rounded-pill h-10 px-6 flex items-center font-body font-bold text-[16px] text-white shrink-0"
     >
-      {label}
+      {votingOpen ? "Cast Your Vote" : "See Contestants"}
     </Link>
   );
 }

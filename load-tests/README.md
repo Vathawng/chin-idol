@@ -5,49 +5,45 @@ live voting round, plus the tooling to set it up safely against a **staging**
 deploy using **Stripe test mode**.
 
 > ⚠️ **Staging only.** Everything here uses service-role / test keys and creates
-> test users, test votes, and (a few) real Stripe *test-mode* sessions. Never
-> point it at production.
+> test votes and (a few) real Stripe *test-mode* sessions. Never point it at
+> production.
+
+**Voting is anonymous** — there are no accounts; the Stripe payment is the gate.
+That makes these tests simple: no login, no session cookies, no user pool. Just
+seed a round, capture ids, and drive traffic.
 
 ## What it tests
 
 | Scenario | Hits | Load | What it proves |
 |---|---|---|---|
-| `browse` | `/`, `/contestants/[id]`, `/watch` (anon) | hard | Public rendering + Supabase public reads hold up under a crowd. |
-| `checkout` | `POST /api/checkout` (authed) | **capped** | The vote hot path end-to-end: auth → rate limit → round lookup → contestant lookup → **real Stripe test session**. |
-| `ratelimit` | `POST /api/checkout` (one user, burst) | tiny | The 10-per-60s limiter in `lib/rate-limit.ts` actually engages on the live deploy. |
+| `browse` | `/`, `/contestants/[id]`, `/watch` | hard | Public rendering + Supabase public reads hold up under a crowd. |
+| `checkout` | `POST /api/checkout` (anonymous) | **capped** | The vote hot path end-to-end: IP rate limit → round lookup → contestant lookup → **real Stripe test session**. |
+| `ratelimit` | `POST /api/checkout` (burst from one IP) | tiny | The 10-per-60s **per-IP** limiter in `lib/rate-limit.ts` actually engages on the live deploy. |
 | `webhook` | `POST /api/webhooks/stripe` (locally signed) | hard | Vote ingestion: signature verify + `votes` insert + `unique(stripe_session_id)` idempotency, without waiting on Stripe. |
 | `results` | `contestant_vote_totals` view + `/` | hard | The leaderboard SUM aggregation stays fast as votes pile up. |
 | `spike` | browse, sudden 3× surge | hard | Behavior when traffic jumps at showtime. |
 | `soak` | browse, long + steady | steady | No latency creep / leaks over time. |
 | `all` | browse + checkout + webhook + results | mixed | A realistic full-round shape, all at once. |
 
-## Why the checkout path is capped (and the webhook path isn't)
+## Why checkout is capped — and the per-IP limiter caveat
 
 `POST /api/checkout` calls `stripe.checkout.sessions.create()` — a **real**
 call to Stripe. Stripe test mode is rate-limited (~25 writes/s) and every call
 litters the test dashboard, so `checkout` runs at a modest arrival rate
-(`CHECKOUT_RPS`, default 8/s). It measures *our* latency and how the rate
-limiter + round lookup behave under sustained arrivals — not how hard we can
-push Stripe.
+(`CHECKOUT_RPS`, default 8/s).
+
+**The app rate-limits checkout per client IP (10 / 60s).** All traffic from one
+k6 box shares an IP, so the `checkout` and `ratelimit` scenarios will start
+returning `429` after ~10 requests/min — that's the limiter working, and `429`
+is treated as an expected result, not a failure. To measure raw checkout
+*throughput*, run distributed (k6 cloud / multiple IPs) or temporarily raise
+the limit in `lib/rate-limit.ts` on a throwaway deploy.
 
 To stress **vote ingestion** hard, the `webhook` scenario constructs
-`checkout.session.completed` events and signs them with the endpoint's own
-**test-mode** signing secret (`LT_STRIPE_WEBHOOK_SECRET`) — the standard
-offline way to exercise a webhook receiver. That never touches Stripe's
-servers, so it can run at high RPS and directly load the DB insert + idempotency
-path.
-
-## Two architecture facts worth knowing before you read results
-
-1. **`middleware.ts` calls `supabase.auth.getUser()` on every matched request.**
-   For any *authenticated* request that's an extra GoTrue round-trip. Auth'd
-   traffic therefore scales GoTrue load 1:1 — watch Supabase auth latency, not
-   just your app.
-2. **Login/signup are behind a Cloudflare Turnstile CAPTCHA** (`components/Turnstile.tsx`,
-   enforced by Supabase). You can't script logins through the front door. This
-   suite sidesteps that by minting sessions with the **service-role admin API**
-   (`generate_link` → `verify`), which is CAPTCHA-immune, then encoding the
-   session into the exact cookie `@supabase/ssr@0.5.2` expects. No app changes.
+`checkout.session.completed` events and verifies them with the endpoint's own
+**test-mode** signing secret (`LT_STRIPE_WEBHOOK_SECRET`) — the standard offline
+way to exercise a webhook receiver. That never touches Stripe's servers, so it
+can run at high RPS and directly load the DB insert + idempotency path.
 
 ## Prerequisites
 
@@ -72,11 +68,11 @@ Fill in `.env.loadtest`:
 # 1. Ensure contestants + an OPEN round exist (staging DB only).
 npm run seed
 
-# 2. Create the test-user pool, mint sessions, capture contestant/round ids.
-#    Re-run whenever tokens expire (~1h) or the open round changes.
+# 2. Capture contestant ids + the open round id into data/fixtures.json.
+#    Re-run whenever the open round changes.
 npm run prepare
 
-# 3. Smoke test: is the app up and is a minted session actually accepted?
+# 3. Smoke test: is the app up and does anonymous checkout respond sanely?
 npm run verify
 
 # 4. Run a scenario.
@@ -103,7 +99,7 @@ Set these in `.env.loadtest` or override per run with `-e` on the k6 CLI:
 | `DURATION` | 1m | Steady-state hold. |
 | `CHECKOUT_RPS` | 8 | Arrival rate for the (real-Stripe) checkout path. Keep < ~20. |
 | `WEBHOOK_RPS` | 50 | Arrival rate for locally-signed ingestion. Push this. |
-| `RATELIMIT_BURST` | 16 | Requests fired by the single-user rate-limit probe. |
+| `RATELIMIT_BURST` | 16 | Requests fired from one IP by the rate-limit probe. |
 
 Example — a heavier browse spike straight from the CLI:
 
@@ -122,19 +118,19 @@ Defined in `main.js`:
 
 Checks are written to **pass** on expected `429` (rate limited) and `403`
 (voting closed), so a failing `checks` rate means something genuinely wrong:
-auth rejected (`401`), a `5xx`, or a rejected webhook signature (`400`).
+a `5xx`, or a rejected webhook signature (`400`).
 
 ## Files
 
 ```
 main.js                 k6 entry: scenario selection + thresholds
 lib/config.js           env-driven config
-lib/data.js             loads sessions.json / fixtures.json (SharedArray)
-lib/stripe-sig.js       signs test webhook events with the test secret
+lib/data.js             loads fixtures.json (contestant + round ids)
+lib/stripe-sig.js       builds + signs test webhook events with the test secret
 scenarios/*.js          one file per scenario
-scripts/_supabase.mjs   admin/session/cookie helpers
+scripts/_supabase.mjs   config + PostgREST read/seed helper
 scripts/seed-round.mjs  seed contestants + an open round
-scripts/prepare.mjs     mint sessions + capture fixtures
+scripts/prepare.mjs     capture contestant + round ids into fixtures.json
 scripts/verify.mjs      pre-flight smoke test
 scripts/run.sh          sources .env.loadtest then runs k6
 data/                   generated fixtures (git-ignored)
@@ -144,6 +140,7 @@ data/                   generated fixtures (git-ignored)
 
 - [ ] `.env.loadtest` points at **staging**, not production.
 - [ ] Supabase + Stripe keys are **test/staging** keys.
-- [ ] You ran `npm run verify` and got a non-401 before the big runs.
-- [ ] You ran `npm run seed:cleanup` and can delete `loadtest+*@…` users afterwards.
+- [ ] You ran `npm run verify` and got a non-5xx before the big runs.
+- [ ] You ran `npm run seed:cleanup`, and can delete the seeded `LOADTEST` round
+      and any `cs_load_*` test votes afterwards.
 ```

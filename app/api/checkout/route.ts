@@ -1,10 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
-import { createClient } from "@/lib/supabase/server";
 import { getContestant } from "@/lib/supabase/contestants";
 import { getVotingStatus } from "@/lib/supabase/rounds";
 import { checkCheckoutRateLimit } from "@/lib/rate-limit";
 import { VOTE_PRICE_CENTS } from "@/lib/contestants";
+
+// Best-effort client IP. Behind Vercel/most proxies the real client is the
+// first entry of x-forwarded-for; x-real-ip is a fallback. Used only to rate
+// limit checkout-session creation, so an occasional "unknown" is acceptable.
+function clientIp(req: NextRequest): string {
+  const fwd = req.headers.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0].trim();
+  return req.headers.get("x-real-ip") || "unknown";
+}
 
 export async function POST(req: NextRequest) {
   const { contestantId, quantity } = await req.json();
@@ -13,22 +21,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid vote request." }, { status: 400 });
   }
 
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json(
-      { error: "Please log in before voting." },
-      { status: 401 }
-    );
-  }
-
-  // Checked right after auth, before any other work — this is what
-  // protects the endpoint from being hammered, whether by a bot or by
-  // someone double/triple-clicking during a traffic spike.
-  const allowed = await checkCheckoutRateLimit(user.id);
+  // Voting is anonymous — the Stripe payment is the gate, no account needed.
+  // We rate limit per IP so a script can't hammer this endpoint creating
+  // checkout sessions, whether by a bot or someone double/triple-clicking
+  // during a traffic spike. Checked first, before any other work.
+  const allowed = await checkCheckoutRateLimit(clientIp(req));
   if (!allowed) {
     return NextResponse.json(
       { error: "You're voting a bit too fast — please wait a moment and try again." },
@@ -55,9 +52,10 @@ export async function POST(req: NextRequest) {
 
   const origin = req.headers.get("origin") || process.env.NEXT_PUBLIC_SITE_URL;
 
+  // Stripe Checkout collects the payer's email itself in payment mode; we read
+  // it back off the completed session in the webhook and store it on the vote.
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
-    customer_email: user.email ?? undefined,
     line_items: [
       {
         price_data: {
@@ -72,7 +70,6 @@ export async function POST(req: NextRequest) {
     ],
     metadata: {
       contestant_id: contestantId,
-      user_id: user.id,
       vote_quantity: String(quantity),
       round_id: status.round.id,
     },

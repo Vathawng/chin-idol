@@ -13,8 +13,10 @@
 import crypto from "k6/crypto";
 
 // Build a checkout.session.completed event body with the metadata the route
-// reads (contestant_id, user_id, vote_quantity, round_id) and a session id.
-export function buildEvent({ sessionId, contestantId, userId, quantity, roundId, amountCents }) {
+// reads (contestant_id, vote_quantity, round_id), the payer email Stripe would
+// attach (customer_details.email), and a session id. Voting is anonymous, so
+// there is no user_id.
+export function buildEvent({ sessionId, contestantId, quantity, roundId, amountCents, email }) {
   return JSON.stringify({
     id: `evt_load_${sessionId}`,
     object: "event",
@@ -24,9 +26,9 @@ export function buildEvent({ sessionId, contestantId, userId, quantity, roundId,
         id: sessionId,
         object: "checkout.session",
         amount_total: amountCents,
+        customer_details: { email: email || null },
         metadata: {
           contestant_id: contestantId,
-          user_id: userId,
           vote_quantity: String(quantity),
           round_id: roundId || "",
         },

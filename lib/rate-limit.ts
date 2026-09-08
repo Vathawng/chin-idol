@@ -4,20 +4,21 @@ const WINDOW_SECONDS = 60;
 const MAX_ATTEMPTS_PER_WINDOW = 10;
 
 /**
- * Sliding-window rate limit on checkout attempts, per logged-in user.
- * Allows plenty of room for normal use (voting for several contestants,
- * retrying after a card decline) while blocking a script hammering the
- * endpoint. Returns true if this attempt is allowed (and records it),
- * false if the user should be rejected.
+ * Sliding-window rate limit on checkout attempts, per client IP.
+ * Voting is anonymous, so there's no user to key on — IP is the best signal
+ * we have to tell one voter's normal activity (voting for several
+ * contestants, retrying after a card decline) apart from a script hammering
+ * the endpoint. Returns true if this attempt is allowed (and records it),
+ * false if it should be rejected.
  */
-export async function checkCheckoutRateLimit(userId: string): Promise<boolean> {
+export async function checkCheckoutRateLimit(ip: string): Promise<boolean> {
   const supabase = createAdminClient();
   const windowStart = new Date(Date.now() - WINDOW_SECONDS * 1000).toISOString();
 
   const { count, error } = await supabase
     .from("checkout_attempts")
     .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
+    .eq("ip", ip)
     .gte("created_at", windowStart);
 
   // If the check itself fails, fail open rather than blocking legitimate
@@ -32,7 +33,7 @@ export async function checkCheckoutRateLimit(userId: string): Promise<boolean> {
     return false;
   }
 
-  await supabase.from("checkout_attempts").insert({ user_id: userId });
+  await supabase.from("checkout_attempts").insert({ ip });
 
   // Opportunistic cleanup so this table doesn't grow forever — cheap,
   // and doesn't need a separate cron job.

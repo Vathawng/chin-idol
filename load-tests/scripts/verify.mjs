@@ -2,10 +2,9 @@
 //
 //   node --env-file=load-tests/.env.loadtest load-tests/scripts/verify.mjs
 //
-// Proves the two things most likely to be wrong:
-//   1. The minted session cookie is actually accepted by the deployed app
-//      (a 401 here means the cookie format / project ref is off).
-//   2. The target app is reachable and the public pages render.
+// Voting is anonymous, so there's nothing to authenticate — this just checks
+// the target is reachable and that /api/checkout responds sensibly (200 with a
+// Stripe url, or a known 403/429), not a 5xx.
 
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
@@ -16,56 +15,39 @@ const dataDir = resolve(__dirname, "..", "data");
 
 const BASE_URL = (process.env.BASE_URL || "http://localhost:3000").replace(/\/+$/, "");
 
-async function loadJson(name) {
-  return JSON.parse(await readFile(resolve(dataDir, name), "utf8"));
-}
-
 async function main() {
-  let sessions, fixtures;
+  let fixtures;
   try {
-    sessions = await loadJson("sessions.json");
-    fixtures = await loadJson("fixtures.json");
+    fixtures = JSON.parse(await readFile(resolve(dataDir, "fixtures.json"), "utf8"));
   } catch {
-    throw new Error("Missing data/*.json — run scripts/prepare.mjs first.");
+    throw new Error("Missing data/fixtures.json — run scripts/prepare.mjs first.");
   }
-  if (sessions.length === 0) throw new Error("sessions.json is empty.");
 
   console.log(`Target: ${BASE_URL}`);
 
-  // 1. Homepage reachable.
   const home = await fetch(`${BASE_URL}/`);
   console.log(`  GET /                -> ${home.status} ${home.ok ? "OK" : "!!"}`);
 
-  // 2. Authenticated checkout — the cookie must be accepted (not 401).
-  const session = sessions[0];
   const contestantId = (fixtures.contestantIds || [])[0];
   if (!contestantId) {
-    console.warn("  ! No contestant id in fixtures — skipping checkout auth check.");
-    console.warn("    Seed contestants + an open round, then re-run prepare.mjs.");
+    console.warn("  ! No contestant id in fixtures — seed contestants + an open round.");
     return;
   }
 
   const res = await fetch(`${BASE_URL}/api/checkout`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Cookie: session.cookie },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ contestantId, quantity: 1 }),
   });
   const bodyText = await res.text();
   console.log(`  POST /api/checkout   -> ${res.status}`);
 
-  if (res.status === 401) {
-    console.error(
-      "\n  FAIL: session cookie rejected (401). The app doesn't recognize the " +
-        "minted session.\n  Check LT_PROJECT_REF matches the Supabase URL, and " +
-        "that tokens haven't expired (re-run prepare.mjs)."
-    );
+  if (res.status >= 500) {
+    console.error(`\n  FAIL: server error. Body: ${bodyText.slice(0, 300)}`);
     process.exit(1);
   }
   if (res.status === 403) {
-    console.warn(
-      "\n  Session ACCEPTED (not 401) but voting is closed (403). Auth works; " +
-        "open a round (seed-round.mjs) for the checkout scenario."
-    );
+    console.warn("\n  Reachable, but voting is closed (403). Run seed-round.mjs to open one.");
   } else if (res.status === 200) {
     const url = (() => {
       try {
@@ -74,11 +56,11 @@ async function main() {
         return "(no url)";
       }
     })();
-    console.log(`\n  PASS: session accepted, Stripe session created. url=${url}`);
+    console.log(`\n  PASS: anonymous checkout created a Stripe session. url=${url}`);
   } else if (res.status === 429) {
-    console.log("\n  PASS: session accepted (rate limited on this attempt — fine).");
+    console.log("\n  PASS: reachable (rate limited on this attempt — fine).");
   } else {
-    console.log(`\n  Session accepted (status ${res.status}). Body: ${bodyText.slice(0, 200)}`);
+    console.log(`\n  Reachable (status ${res.status}). Body: ${bodyText.slice(0, 200)}`);
   }
 
   console.log("\nSetup looks good. You can run k6 now.");

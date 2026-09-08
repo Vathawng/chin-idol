@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
 
 type VotingStatus =
   | { open: true; round: { id: string; name: string; opens_at: string; closes_at: string } }
@@ -31,8 +30,6 @@ export default function VoteWidget({
   pricePerVote: number;
   votingStatus: VotingStatus;
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
   const [qty, setQty] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,12 +45,6 @@ export default function VoteWidget({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ contestantId, quantity: qty }),
       });
-
-      if (res.status === 401) {
-        // Not logged in — send them to log in, then bring them right back here.
-        router.push(`/login?next=${encodeURIComponent(pathname)}`);
-        return;
-      }
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Something went wrong");
@@ -151,7 +142,7 @@ export default function VoteWidget({
           : `Vote ${qty} time${qty > 1 ? "s" : ""} — checkout with Stripe`}
       </button>
       <p className="text-center font-body text-[12px] text-ink/40 mt-3">
-        You'll need to be signed in. Payments are processed securely by Stripe.
+        No account needed. Payments are processed securely by Stripe.
       </p>
     </div>
   );

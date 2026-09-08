@@ -65,7 +65,7 @@ async function main() {
   });
 
   console.log(`Opened round ${round.id} (${ROUND_NAME}), closes ${closesAt}.`);
-  console.log("Now run prepare.mjs to mint sessions and capture this round id.");
+  console.log("Now run prepare.mjs to capture this round id into fixtures.json.");
 }
 
 main().catch((err) => {

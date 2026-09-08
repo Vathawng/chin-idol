@@ -1,16 +1,16 @@
 // Correctness-under-load probe for lib/rate-limit.ts.
 //
-// The limiter allows 10 checkout attempts per 60s per user. This scenario
-// pins ONE user and fires a burst, asserting that early requests succeed and
-// later ones get 429'd — i.e. the sliding window actually engages on the live
-// deploy, not just in theory. It's low-volume (a burst just past the limit)
-// so it creates only a handful of real Stripe test sessions.
+// The limiter allows 10 checkout attempts per 60s per client IP. This scenario
+// fires a burst from a single k6 box (one IP) and asserts that early requests
+// succeed and later ones get 429'd — i.e. the sliding window actually engages
+// on the live deploy. It's low-volume (a burst just past the limit) so it
+// creates only a handful of real Stripe test sessions.
 
 import http from "k6/http";
 import { check } from "k6";
 import { Counter } from "k6/metrics";
 import { CONFIG } from "../lib/config.js";
-import { sessions, fixtures } from "../lib/data.js";
+import { fixtures } from "../lib/data.js";
 
 const allowed = new Counter("ratelimit_allowed");
 const blocked = new Counter("ratelimit_blocked");
@@ -18,10 +18,9 @@ const blocked = new Counter("ratelimit_blocked");
 const BURST = parseInt(__ENV.RATELIMIT_BURST || "16", 10); // > the limit of 10
 
 export function rateLimit() {
-  const session = sessions[0];
   const contestantId = (fixtures.contestantIds || [])[0];
-  if (!session || !contestantId) {
-    check(null, { "have session+contestant (prepare.mjs / seed)": () => false });
+  if (!contestantId) {
+    check(null, { "have a contestant (prepare.mjs / seed)": () => false });
     return;
   }
 
@@ -33,7 +32,7 @@ export function rateLimit() {
       `${CONFIG.baseUrl}/api/checkout`,
       JSON.stringify({ contestantId, quantity: 1 }),
       {
-        headers: { "Content-Type": "application/json", Cookie: session.cookie },
+        headers: { "Content-Type": "application/json" },
         tags: { endpoint: "checkout", probe: "ratelimit" },
       }
     );
@@ -53,8 +52,8 @@ export function rateLimit() {
 
   if (!saw429) {
     console.warn(
-      `Fired ${BURST} requests as one user but never got 429 — the rate ` +
-        `limiter may not be engaging (check checkout_attempts table / limits).`
+      `Fired ${BURST} requests from one IP but never got 429 — the rate ` +
+        `limiter may not be engaging (check checkout_attempts.ip / limits).`
     );
   }
 }

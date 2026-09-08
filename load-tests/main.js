@@ -2,7 +2,7 @@
 //
 // Pick a scenario with the SCENARIO env var:
 //   SCENARIO=browse     read-heavy public browsing (ramp)         [safe, hard]
-//   SCENARIO=checkout   authenticated vote hot path (real Stripe) [capped]
+//   SCENARIO=checkout   anonymous vote hot path (real Stripe)    [capped]
 //   SCENARIO=ratelimit  correctness probe for the 10/60s limiter  [tiny]
 //   SCENARIO=webhook    vote-ingestion at RPS (locally signed)    [hard]
 //   SCENARIO=results    leaderboard aggregation read load         [safe]
@@ -143,7 +143,7 @@ export const options = {
     "webhook_ms": ["p(95)<1200"],
     "results_totals_ms": ["p(95)<1200"],
     // Our checks are written to PASS on expected 429/403, so a low pass rate
-    // means something is genuinely wrong (auth rejected, 5xx, bad signature).
+    // means something is genuinely wrong (5xx, or a bad webhook signature).
     "checks": ["rate>0.98"],
   },
   // Don't count intentional 429/403 (rate-limited / voting-closed) as errors;
