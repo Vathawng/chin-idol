@@ -14,6 +14,31 @@ function clientIp(req: NextRequest): string {
   return req.headers.get("x-real-ip") || "unknown";
 }
 
+// Resolve a valid absolute origin for Stripe's success/cancel URLs. Stripe
+// rejects anything that isn't a well-formed absolute URL, so we try the
+// request's Origin header, then NEXT_PUBLIC_SITE_URL, then the request URL
+// itself — normalizing each (add scheme, drop trailing slash) and validating
+// with the URL parser. Guarantees a usable origin even if the env var is
+// missing/misconfigured or the caller sent no Origin header.
+function resolveOrigin(req: NextRequest): string {
+  const candidates = [
+    req.headers.get("origin"),
+    process.env.NEXT_PUBLIC_SITE_URL,
+    req.nextUrl.origin,
+  ];
+  for (let candidate of candidates) {
+    if (!candidate) continue;
+    let value = candidate.trim().replace(/\/+$/, "");
+    if (!/^https?:\/\//i.test(value)) value = `https://${value}`;
+    try {
+      return new URL(value).origin; // scheme + host, no path/trailing slash
+    } catch {
+      // try the next candidate
+    }
+  }
+  return req.nextUrl.origin;
+}
+
 export async function POST(req: NextRequest) {
   const { contestantId, quantity } = await req.json();
 
@@ -50,32 +75,42 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Contestant not found." }, { status: 404 });
   }
 
-  const origin = req.headers.get("origin") || process.env.NEXT_PUBLIC_SITE_URL;
+  const origin = resolveOrigin(req);
 
   // Stripe Checkout collects the payer's email itself in payment mode; we read
   // it back off the completed session in the webhook and store it on the vote.
-  const session = await stripe.checkout.sessions.create({
-    mode: "payment",
-    line_items: [
-      {
-        price_data: {
-          currency: "usd",
-          unit_amount: VOTE_PRICE_CENTS,
-          product_data: {
-            name: `Chin American Idol vote — ${contestant.name}`,
+  // Wrapped so a Stripe error returns a clean JSON error the client can show,
+  // and a real message lands in the logs — instead of an opaque empty 500.
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      line_items: [
+        {
+          price_data: {
+            currency: "usd",
+            unit_amount: VOTE_PRICE_CENTS,
+            product_data: {
+              name: `Chin American Idol vote — ${contestant.name}`,
+            },
           },
+          quantity,
         },
-        quantity,
+      ],
+      metadata: {
+        contestant_id: contestantId,
+        vote_quantity: String(quantity),
+        round_id: status.round.id,
       },
-    ],
-    metadata: {
-      contestant_id: contestantId,
-      vote_quantity: String(quantity),
-      round_id: status.round.id,
-    },
-    success_url: `${origin}/vote/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/vote/cancel`,
-  });
+      success_url: `${origin}/vote/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/vote/cancel`,
+    });
 
-  return NextResponse.json({ url: session.url });
+    return NextResponse.json({ url: session.url });
+  } catch (err) {
+    console.error("Stripe checkout session creation failed:", err);
+    return NextResponse.json(
+      { error: "Couldn't start checkout. Please try again in a moment." },
+      { status: 502 }
+    );
+  }
 }
